@@ -1,0 +1,322 @@
+#!/usr/bin/perl -w
+#
+# filemon2 persistenst filesystem event notification (userspace part)
+#
+# Copyright (C) 2016 Thomas Schoebel-Theuer
+# Copyright (C) 2016 1&1 Internet AG
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+use strict;
+use English;
+use warnings;
+
+umask 0077;
+
+##################################################################
+
+# global defaults
+
+my $verbose = 0;
+my $dry_run = 0;
+
+##################################################################
+
+# messaging
+
+my $error_count = 0;
+my $notify = "";
+my $logger = "/usr/bin/logger";
+
+sub llog {
+  my ($text) = @_;
+  if ($notify) {
+    system("$logger -t fm2adm \"$notify $text\"");
+  }
+}
+
+sub lprint {
+  my ($text) = @_;
+  $OUTPUT_AUTOFLUSH = 1;
+  print $text;
+  llog($text);
+}
+
+sub lprint_stderr {
+  my ($text) = @_;
+  $OUTPUT_AUTOFLUSH = 1;
+  print STDERR $text;
+  llog($text);
+}
+
+sub ldie {
+  my ($text) = @_;
+  if ($verbose > 2) {
+    my $i = 1;
+    for (;;) {
+      my ($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i++);
+      last unless defined($subroutine);
+      lprint_stderr "$line:$subroutine\n";
+    }
+  }
+  $error_count++;
+  lprint_stderr "DYING: $text";
+  llog("DYING: $text");
+  die "\n";
+}
+
+sub lwarn {
+  my ($text) = @_;
+  lprint_stderr "WARNING: $text";
+  llog("WARNING: $text");
+}
+
+##################################################################
+
+# global variables
+
+my $Id = '$Id: 7835064c569d44928420869d5e479ec40f203d06 $ ';
+my $force = 0;
+
+##################################################################
+
+# list of resources
+
+sub get_resources {
+  my ($do_filter) = @_;
+  my @res;
+  open IN, "< /proc/mounts" or ldie "cannot open /proc/mounts";
+  while (my $line = <IN>) {
+    my @fields = split(/ /, $line);
+    next if $fields[0] !~ m:^/dev/:;
+    my $path = $fields[1];
+    next if $path !~ m:^/:;
+    next if $do_filter && ! -d "$path/.filemon2/";
+    push @res, $path;
+  }
+  close IN;
+  return @res;
+}
+
+##################################################################
+
+# command helpers
+
+sub update_mask {
+  my ($cmd, $res) = @_;
+  my $myfile = "enabled-mask-fm2.conf";
+  my $count = 0;
+  my $mask = 0;
+  foreach my $maskfile (glob("$res/.filemon2/enabled-mask-*.conf")) {
+    next if $maskfile =~ m:/$myfile:;
+    my $this_mask = `grep -v '#' "$maskfile"`;
+    $this_mask = hex($this_mask) if $this_mask =~ m/0x/;
+    $mask |= $this_mask;
+    $count++;
+  }
+  if ($count) {
+    open OUT, "> $res/.filemon2/$myfile.tmp" or die "cannot create $myfile";
+    printf OUT "%d\n", $mask;
+    close OUT;
+    rename("$res/.filemon2/$myfile.tmp", "$res/.filemon2/$myfile");
+  } else {
+    unlink("$res/.filemon2/$myfile");
+  }
+}
+
+##################################################################
+
+# commands
+
+sub cmd_status {
+  my ($cmd, $res) = @_;
+  my @logs = sort(glob("$res/.filemon2/eventlog-*.log"));
+  my $last_log = pop @logs;
+  $last_log =~ s:^$res/::;
+  lprint "$res\t$last_log\n";
+}
+
+sub cmd_logdelete {
+  my ($cmd, $res) = @_;
+  update_mask(@_);
+  my @positions = sort(glob("$res/.filemon2/position-*.status"));
+  my $mini = 0;
+  while (@positions) {
+    my $this_position = shift @positions;
+    open IN, "grep -v '^#' $this_position |" or ldie "cannot open '$this_position'";
+    my $this = int(<IN>);
+    close IN;
+    ldie "cannot read '$this_position'" unless $this > 0;
+    $mini = $this if (!$mini || $this < $mini);
+  }
+  lprint "$res minimum logfile number is $mini\n";
+  my @logs = sort(glob("$res/.filemon2/eventlog-*.log"));
+  my $this_nr;
+  while (@logs) {
+    my $this_log = shift @logs;
+    $this_nr = _get_log_nr($this_log);
+    ldie "cannot determine logfile number from '$this_log'" unless $this_nr;
+    next if (($this_nr >= $mini && $mini > 0) || !@logs);
+    lprint "deleting '$this_log'\n";
+    unlink($this_log);
+  }
+  lprint "$res maximum logfile number is $this_nr\n";
+};
+
+sub cmd_logrot {
+  my ($cmd, $res) = @_;
+  update_mask(@_);
+  system("echo 1 > $res/.filemon2/extra-logrot-fm2.cmd");
+}
+
+sub cmd_overflow {
+  my ($cmd, $res) = @_;
+  update_mask(@_);
+  system("echo 1 > $res/.filemon2/extra-overflow-fm2.cmd");
+}
+
+##################################################################
+
+# help etc
+
+my %cmd_table;
+
+sub helplist {
+  my $msg = shift;
+  print "$0 - filemon2 admin tool\n";
+  print "\n";
+  print "usage: $0 <command> [<resource_list>]\n";
+  print "\n";
+  print "When the <resource_list> is empty, all resources from /proc/mounts will\n";
+  print "be scanned.\n";
+  print "\n";
+  print "<command> is one of the following:\n";
+  foreach my $cmd (sort(keys(%cmd_table))) {
+    my $list = $cmd_table{$cmd};
+    my @array = @$list;
+    my $txt = $array[0];
+    print "  $cmd: $txt\n";
+  }
+  print "\n";
+  ldie($msg) if ($msg);
+  exit(0);
+}
+
+sub version {
+  lprint "$0 $Id\n";
+  exit(0);
+}
+
+sub _get_log_nr {
+  my ($this_log) = @_;
+  $this_log =~ m:/eventlog-([0-9]{9})\.log:;
+  my $this_nr = $1;
+  $this_nr =~ s/^0*//;
+  return $this_nr;
+}
+
+##################################################################
+
+# command driver
+
+%cmd_table =
+  (
+   "status"
+   => [
+       "Show the status of each resource",
+       \&cmd_status,
+      ],
+   "logdelete"
+   => [
+       "Delete all unused / unreferenced event logfiles",
+       \&cmd_logdelete,
+      ],
+   "extra-logrot"
+   => [
+       "Create an extraordinary eventlog rotation",
+       \&cmd_logrot,
+      ],
+   "extra-overflow"
+   => [
+       "Create an extraordinary overflow",
+       \&cmd_overflow,
+      ],
+  );
+
+my @args;
+
+foreach my $arg (@ARGV) {
+  if ($arg eq "--force" || $arg eq "-f") {
+    $force++;
+    next;
+  } elsif ($arg eq "--dry-run" || $arg eq "-d") {
+    $dry_run++;
+    next;
+  } elsif ($arg =~ s/--verbose\s*=\s*(-?[0-9]+)/$1/) {
+    $verbose = $arg;
+    next;
+  } elsif ($arg eq "--verbose" || $arg eq "-v") {
+    $verbose++;
+    next;
+  } elsif ($arg =~ s/--logger\s*=\s*(.*)/$1/) {
+    $logger = $arg;
+    next;
+  } elsif ($arg =~ m/^--help$/ || $arg =~ m/^-h$/) {
+    helplist();
+    next;
+  } elsif ($arg =~ m/^--version$/ || $arg =~ m/^-v$/) {
+    version();
+    next;
+  } elsif ($arg =~ m/^-(.*)/) {
+    ldie "unrecognized argument '-$1' (bad syntax)\n";
+  }
+  if ($arg =~ s/^force-//) {
+    $force++;
+  }
+  push @args, $arg;
+}
+
+my $cmd = shift @args || helplist("command argument is missing\n");
+
+if ($cmd =~ m/^help$/ || $cmd =~ m/^h$/) {
+  helplist();
+}
+
+if ($cmd =~ m/^version$/ || $cmd =~ m/^v$/) {
+  version();
+}
+
+ldie "only root may use this tool\n" if $< != 0 && $cmd !~ m/^(cat)$/; # getpid() seems to be missing in perlfunc
+
+helplist("unknown command $cmd\n") if (!exists $cmd_table{$cmd});
+my $action_list = $cmd_table{$cmd};
+
+
+if (!@args) {
+  @args = get_resources(1);
+}
+
+foreach my $res (@args) {
+  next unless -d "$res/.filemon2/";
+  my @list = @$action_list;
+  while (@list) {
+    my $func = shift @list;
+    next unless ref($func) eq "CODE";
+    eval {
+      &{$func}($cmd, $res);
+      1;
+    }
+  }
+}
