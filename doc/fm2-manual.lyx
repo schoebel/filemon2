@@ -1,0 +1,2280 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass scrreprt
+\begin_preamble
+\usepackage[dvipsnames]{xcolor}
+\usepackage{listings}
+\end_preamble
+\options abstracton
+\use_default_options true
+\begin_modules
+customHeadersFooters
+enumitem
+fixltx2e
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_math auto
+\font_default_family rmdefault
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize 10
+\spacing single
+\use_hyperref true
+\pdf_title "MARS Manual"
+\pdf_author "Thomas Schöbel-Theuer"
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks true
+\pdf_pdfborder true
+\pdf_colorlinks true
+\pdf_backref false
+\pdf_pdfusetitle true
+\papersize a4paper
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 3.6cm
+\topmargin 2.7cm
+\rightmargin 2.7cm
+\bottommargin 2.3cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 2
+\paperpagestyle headings
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+
+\family typewriter
+filemon2 Manual
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subtitle
+dentry-based persistent filesystem notifications
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\end_layout
+
+\begin_layout Author
+Thomas Schöbel-Theuer (
+\family typewriter
+tst@schoebel-theuer.de
+\family default
+)
+\end_layout
+
+\begin_layout Date
+Version 0.1
+\end_layout
+
+\begin_layout Lowertitleback
+\noindent
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+sloppy
+\end_layout
+
+\end_inset
+
+ Copyright (C) 2016 Thomas Schöbel-Theuer
+\begin_inset Newline newline
+\end_inset
+
+Copyright (C) 2016 1&1 Internet AG (see 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+http://www.1und1.de
+\end_layout
+
+\end_inset
+
+ shortly called 1&1 in the following).
+\begin_inset Newline newline
+\end_inset
+
+
+\size footnotesize
+Permission is granted to copy, distribute and/or modify this document under
+ the terms of the GNU Free Documentation License, Version 1.3 or any later
+ version published by the Free Software Foundation; with no Invariant Sections,
+ no Front-Cover Texts, and no Back-Cover Texts.
+ A copy of the license is included in the section entitled 
+\begin_inset Quotes eld
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand nameref
+reference "chap:GNU-FDL"
+
+\end_inset
+
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Abstract
+
+\family typewriter
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+sloppy
+\end_layout
+
+\end_inset
+
+ filemon2 
+\family default
+differs from 
+\family typewriter
+inotify
+\family default
+ / 
+\family typewriter
+dnotify
+\family default
+ / 
+\family typewriter
+fsnotify
+\family default
+ in several respects: (a) persistent event recording by a kernel thread
+ even when no consumers are present at the moment (thus completeness / contiguit
+y can be guaranteed), and (b) ability to serve an arbitrary number of consumers
+ in parallel with an arbitrary lag-behind (only limited by filesystem space,
+ even several days of lag-behind are possible), and (c) use of relative
+ paths inside of 
+\emph on
+physical
+\emph default
+ filesystems, independently from ambiguous logical paths caused by bind
+ mounts / namespaces / containers etc.
+ In contrast to 
+\family typewriter
+inotify
+\family default
+ and friends which can lead to 
+\begin_inset Quotes eld
+\end_inset
+
+watches leaks
+\begin_inset Quotes erd
+\end_inset
+
+ and other kernel memory leaks, no additional kernel memory is allocated
+ at all during transient states, by directly placing the 
+\family typewriter
+filemon2
+\family default
+ event information into already pre-existing 
+\family typewriter
+struct dentry
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Chapter
+Operating Principle
+\end_layout
+
+\begin_layout Section
+General Operating Principle
+\end_layout
+
+\begin_layout Standard
+\noindent
+Event logging is 
+\emph on
+sequential
+\emph default
+ in nature, while event generation is 
+\emph on
+parallel
+\emph default
+ in nature.
+\end_layout
+
+\begin_layout Standard
+Think of rain drops pouring down from the sky in parallel, while the gully
+ has only a limited capacity.
+\end_layout
+
+\begin_layout Standard
+Filemon2 uses dentries for 
+\emph on
+transient
+\emph default
+ event accumulation during such phases where the gully cannot catch with
+ some short load peaks.
+ Here is the state transition diagram of one 
+\family typewriter
+dentry
+\family default
+: 
+\end_layout
+
+\begin_layout Standard
+\noindent
+\align center
+\begin_inset Graphics
+	filename fm2-states.fig
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+On a big server (e.g.
+ 40-core machine), the 
+\family typewriter
+dentry
+\family default
+ cache of the kernel (and in turn the corresponding 
+\family typewriter
+inode
+\family default
+s) can be dirtified much faster than 
+\emph on
+any
+\emph default
+
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+This argument is independent from the logging mechanism.
+ It also applies to userspace logging daemons.
+\end_layout
+
+\end_inset
+
+ output mechanism can cope with.
+\end_layout
+
+\begin_layout Standard
+Example: 
+\family typewriter
+for i in {1..40}; do while true; do touch /tmp/xxx.$i; done & done
+\end_layout
+
+\begin_layout Standard
+Therefore, 
+\family typewriter
+filemon2
+\family default
+ (shortly called 
+\family typewriter
+fm2
+\family default
+) is recording all events belonging to the 
+\emph on
+same
+\emph default
+ 
+\family typewriter
+dentry
+\family default
+ instance in a bitmask, called event bitmask 
+\family typewriter
+fm2_events
+\family default
+.
+ Whenever an event bit is set much faster than the output thread can cope
+ with, a counter 
+\family typewriter
+fm2_repeat
+\family default
+ is incremented.
+ The latter can serve as a 
+\emph on
+hint
+\emph default
+ that 
+\emph on
+some
+\emph default
+ event types have occurred multiple times.
+\end_layout
+
+\begin_layout Standard
+In order to not flood the eventlog with repetitions of the 
+\emph on
+same
+\emph default
+ event type, the following strategy is used:
+\end_layout
+
+\begin_layout Itemize
+whenever a 
+\emph on
+new
+\emph default
+ event type occurs since the 
+\family typewriter
+dentry
+\family default
+ had been fresh or logged for the last time, logging is always done ASAP
+ (state transition from 
+\family typewriter
+dirty
+\family default
+ to 
+\family typewriter
+inactive
+\family default
+ without unnecessary delay).
+\end_layout
+
+\begin_layout Itemize
+otherwise, repetition of the 
+\emph on
+same
+\emph default
+ event type (already occurred since the dentry was 
+\family typewriter
+fresh
+\family default
+) does nothing but (re)starting a timeout timer in state 
+\family typewriter
+delayed
+\family default
+.
+ Only when the timeout (default 60s) has occurred, the event is logged 
+\emph on
+again
+\emph default
+ (state transition from 
+\family typewriter
+delayed
+\family default
+ to 
+\family typewriter
+fresh
+\family default
+).
+\end_layout
+
+\begin_layout Section
+The 
+\family typewriter
+fm2
+\family default
+ Epoch Timestamp
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+fm2
+\family default
+ tries to ensure as best as it can that 
+\series bold
+no events are lost unnoticedly
+\series default
+.
+\end_layout
+
+\begin_layout Standard
+Therefore, the persistent eventlog is written by a kernel thread which cannot
+ be 
+\family typewriter
+kill(1)
+\family default
+ed or otherwise destroyed by userspace actions.
+ The kernel thread is automatically started during the 
+\family typewriter
+mount(2)
+\family default
+ syscall, and automatically stopped as a last action during 
+\family typewriter
+umount(2)
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Hint: other solutions (including the old 
+\family typewriter
+filemonitor1
+\family default
+ in combination with the old 
+\family typewriter
+fsmd1
+\family default
+ userspace daemon) were trying to solve this via a userspace daemon reading
+ events from a non-persistent 
+\family typewriter
+/proc/
+\family default
+ interface from the kernel.
+ This led to several problems.
+ In particular, race conditions or wrong 
+\family typewriter
+systemd
+\family default
+ configs could influence the startup / shutdown order of services, such
+ that events could get lost.
+ More generally, it is a hard problem to run multiple such daemon instances
+ inside of multiple LXC containers which can be started / stopped indepently
+ from each other, and/or when access to the container filesystem is also
+ possible from outside (bypassing the container) and/or when bind mounts
+ are leading to ambiguities in the path names.
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+fm2
+\family default
+ solves this by keeping the so-called 
+\family typewriter
+\series bold
+fm2
+\family default
+ epoch timestamp
+\series default
+.
+ It shows the Unix time (seconds since 1970) since when the 
+\family typewriter
+fm2
+\family default
+ events were recorded contiguously.
+\end_layout
+
+\begin_layout Standard
+The fm2 epoch timestamp can be easily seen when looking into the first (or
+ any other) global record at each 
+\family typewriter
+.filemon2/eventlog-????????.log
+\family default
+ logfile (see section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:Global-Record-Format"
+
+\end_inset
+
+ below).
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+fm2
+\family default
+ epoch timestamp is automatically recorded in the filesystem during 
+\family typewriter
+umount(2)
+\family default
+, and automatically restored followed by deletion at the next 
+\family typewriter
+mount(2)
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+When the system crashes during operation, no recorded timestamp will exist
+ at remount time.
+ This indicates that the epoch was interrupted, because some old events
+ might have been missed.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/MatieresToxiques.png
+	lyxscale 50
+	scale 17
+
+\end_inset
+
+ The current version of 
+\family typewriter
+fm2
+\family default
+ does not (yet) notice when the filesystem is mounted at a different kernel
+ not containing the filemonitor2 kernel patch.
+ In such a case, events may get lost.
+ Later versions of fm2 are planned to detect this special case as best as
+ possible.
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+fm2
+\family default
+ epoch timestamp is reset at the following places:
+\end_layout
+
+\begin_layout Itemize
+when there exists no recorded old epoch timestamp (e.g.
+ fresh filesystem, or information has been lost by crashes etc).
+\end_layout
+
+\begin_layout Itemize
+when an overflow is explicitly triggered during runtime via 
+\family typewriter
+extra-overflow-fm2.cmd
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+when the filesystem is almost full (
+\family typewriter
+free-space-min-fm2.conf
+\family default
+ has been undershot).
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+Notice that the sequence of event logs is not only containing a 
+\emph on
+history
+\emph default
+ of events, but also a history of 
+\family typewriter
+fm2
+\family default
+ epoches.
+ Notice that each eventlog may have its own instance of the 
+\family typewriter
+fm2
+\family default
+ epoch, because interruptions of the contiguity of events might have occurred
+ 
+\emph on
+multiple
+\emph default
+ times.
+ Correctness of interpretation of the 
+\emph on
+meaning
+\emph default
+ of the 
+\family typewriter
+fm2
+\family default
+ epoch timestamps is the task of each consumer application.
+\end_layout
+
+\begin_layout Chapter
+Activation and Config of 
+\family typewriter
+fm2
+\end_layout
+
+\begin_layout Section
+Activation and File Formats
+\end_layout
+
+\begin_layout Standard
+The basic unit of 
+\family typewriter
+fm2
+\family default
+ is a 
+\series bold
+filesystem instance
+\series default
+ as occurring on a disk media.
+ Only 
+\emph on
+relative
+\emph default
+ paths as present at the media are recorded.
+ Runtime presentations like bind mounts or namespaces are ignored by 
+\family typewriter
+fm2
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+When a filesystem has a subdirectoy 
+\family typewriter
+.filemon2/
+\family default
+ directly below its filesystem root it will be automatically monitored by
+ 
+\family typewriter
+fm2
+\family default
+ after it has been 
+\family typewriter
+mount(2)
+\family default
+ed.
+ Any filesystem which does not have such a reserved subdirectory is completely
+ ignored by 
+\family typewriter
+fm2
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+Notice: after creation of the 
+\family typewriter
+.filemon2/
+\family default
+ subdirectoy (e.g.
+ after a fresh 
+\family typewriter
+mkfs
+\family default
+), the current version of the kernel patch requires you to first 
+\family typewriter
+umount(2)
+\family default
+ the filesystem followed by a re-
+\family typewriter
+mount(2)
+\family default
+ in order to activate 
+\family typewriter
+fm2
+\family default
+.
+ This might change in a later version of 
+\family typewriter
+fm2
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Inside of 
+\family typewriter
+.filemon2/
+\family default
+ the following 
+\series bold
+naming conventions
+\series default
+ must be obeyed by multiple consumer applications:
+\end_layout
+
+\begin_layout Itemize
+different consumer applications 
+\family typewriter
+$app1
+\family default
+ and 
+\family typewriter
+$app2
+\family default
+ must use the general filename pattern 
+\family typewriter
+.filemon2/
+\emph on
+$something
+\emph default
+-$app1.*
+\family default
+ and 
+\family typewriter
+.filemon2/
+\emph on
+$something
+\emph default
+-$app2.*
+\family default
+ in order to avoid any name clashes.
+ Applications are allowed to place their own private information inside
+ of 
+\family typewriter
+.filemon2/
+\family default
+ provided that the naming conventions are met.
+\end_layout
+
+\begin_layout Itemize
+the special application name 
+\family typewriter
+fm2
+\family default
+ is reserved for filemon2.
+\end_layout
+
+\begin_layout Itemize
+the suffix 
+\family typewriter
+*.conf
+\family default
+ is reserved for configuration information.
+\end_layout
+
+\begin_layout Itemize
+the suffix 
+\family typewriter
+*.state
+\family default
+ is reserved for 
+\emph on
+internal
+\emph default
+ state information.
+\end_layout
+
+\begin_layout Itemize
+the suffix 
+\family typewriter
+*.status
+\family default
+ is reserved for 
+\emph on
+public
+\emph default
+ status information.
+\end_layout
+
+\begin_layout Itemize
+in particular, 
+\family typewriter
+position-
+\emph on
+$appname
+\emph default
+.status
+\family default
+ 
+\series bold
+must be used
+\series default
+ by any consumer application to indicate the current eventlog number which
+ has 
+\emph on
+not yet
+\emph default
+ been consumed.
+ Consumer applications are responsible for maintaining this correctly and
+ timely.
+ Notice that 
+\family typewriter
+fm2adm logdelete
+\family default
+ will later delete any logfile which has a lower number than indicated here,
+ by the minimum position indicated by all consumers.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+eventlog-000000001-fm2.log
+\family default
+ (and further 9-digit numbers) are written by the internal kernel thread
+ of 
+\family typewriter
+fm2
+\family default
+ and can be read by any consumer application.
+ Consumers should regularly check the 
+\family typewriter
+.filemon2/
+\family default
+ directory for new event logfiles to appear.
+\end_layout
+
+\begin_layout Section
+Parameterization
+\end_layout
+
+\begin_layout Standard
+For basic operation of fm2, the pure existence of the 
+\family typewriter
+.filemon2/
+\family default
+ directory is sufficient.
+ The following is only necessary in order to deviate from defaults.
+\end_layout
+
+\begin_layout Standard
+It is useful to parameterize the operation of 
+\family typewriter
+fm2
+\family default
+ via the following reserved files inside of 
+\family typewriter
+.filemon2/
+\family default
+ each containing a single ASCII line with a number, possibly prefixed by
+ 
+\family typewriter
+0x
+\family default
+ to indicate a hex-coded number:
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+enabled-mask-fm2.conf
+\family default
+ This file should not be directly overwritten by any single consumer application.
+ Instead, each consumer application should write the event types it wants
+ to watch into a file 
+\family typewriter
+enabled-mask-
+\family default
+\emph on
+$applicationname
+\emph default
+.conf in hex format.
+ Upon the next 
+\family typewriter
+fm2adm log-delete
+\family default
+ operation (as typically triggered from a cron job), all 
+\family typewriter
+enabled-mask-
+\family default
+*.conf file will be logically or'ed together to form the new
+\family typewriter
+ enabled-mask-fm2
+\family default
+.conf config file.
+ This way, multiple co-existing applications may request different event
+ types.
+ Applications 
+\series bold
+must
+\series default
+ be programmed in such a way that they have to ignore any additional event
+ types they are not currently interested in.
+\begin_inset Newline newline
+\end_inset
+
+The event type bits and their meaning are documented in 
+\family typewriter
+include/uapi/linux/filemon2.h
+\family default
+ in the kernel patch.
+ Later versions of the kernel patch may define further bits.
+ Applications 
+\series bold
+must
+\series default
+ be programmed in such a way that arbitrary new bit definitions appearing
+ in future versions of 
+\family typewriter
+include/uapi/linux/filemon2.h
+\family default
+ 
+\series bold
+must not disturb
+\series default
+ them.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+rot-time-fm2.conf
+\family default
+ This number is intended for sysadmin tuning of the event logfile rotation
+ (default 600s).
+ It must not be touched by consumer applications.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+repeat-timeout-fm2.conf
+\family default
+ This number is also intended for sysadmin tuning of the timeout for the
+ 
+\family typewriter
+delayed
+\family default
+
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+
+\family typewriter
+fresh
+\family default
+ transition (default 60s).
+ It must not be touched by consumer applications.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+free-space-min-fm2.conf
+\family default
+ Sysadmins can tune this number to the free space on the filesystem in GiB
+ which must be present for ordinary operation (default 1 GiB).
+ When the free space on the filesystem drops below this limit, 
+\series bold
+fm2
+\series default
+ will automatically stop event logging immediately after writing a 
+\family typewriter
+DISK_FULL
+\family default
+ record into the eventlog.
+ This value must not be touched by consumer applications.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+free-space-max-fm2.conf
+\family default
+ This is the reverse of 
+\family typewriter
+free-space-min-fm2
+\family default
+.conf (default 2 GiB): it denotes the point where event logging is automatically
+ resumed after a 
+\family typewriter
+DISK_FULL
+\family default
+.
+ This value must not be touched by consumer applications.
+\end_layout
+
+\begin_layout Section
+Runtime Commands
+\end_layout
+
+\begin_layout Standard
+Communication to the kernel thread is possible by spontaneous creation of
+ some tiny files.
+ The files are removed by the kernel thread once the command has been executed.
+ Not only sysadmins, but also consumer applications may request them.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+ Please prefer the corresponding 
+\family typewriter
+fm2adm
+\family default
+ commands (see chapter 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "chap:Userspace-Admin-Command"
+
+\end_inset
+
+) in front of this.
+ This is only documented here for completeness.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+extra-logrot-fm2.cmd
+\family default
+ When containing a value >0, this will start an immediate eventlog rotation
+ even when the ordinary logrotate intervall has not yet occurred.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+extra-overflow-fm2.cmd
+\family default
+ When containing a value >0, this will write an 
+\family typewriter
+OVERFLOW
+\family default
+ record into the eventlog, and reset the epoch timestamp to the current
+ time, and finally cause an extra eventlog rotation.
+\end_layout
+
+\begin_layout Chapter
+Userspace Admin Command 
+\family typewriter
+fm2adm
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:Userspace-Admin-Command"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+fm2adm
+\family default
+ usually takes one sub-command as an argument.
+ When no further arguments are given, all mountpoints from 
+\family typewriter
+/proc/mounts
+\family default
+ are scanned for a 
+\family typewriter
+.filemon2/
+\family default
+ subdirectory where 
+\family typewriter
+fm2
+\family default
+ is currently running; these are taken as 
+\family typewriter
+fm2
+\family default
+ resource arguments.
+ Alternatively, an explicit list of mountpoints (denoting 
+\family typewriter
+fm2
+\family default
+ resources) may be given as further arguments.
+\end_layout
+
+\begin_layout Standard
+Currently, the following sub-commands are supported (to be extended in future):
+\end_layout
+
+\begin_layout Description
+help Show a short usage info.
+\end_layout
+
+\begin_layout Description
+status Show a short info on each resource.
+\end_layout
+
+\begin_layout Description
+logdelete After updating 
+\family typewriter
+enabled-mask-fm2.conf
+\family default
+, delete all currently unreferenced logfiles which are not referenced by
+ some 
+\family typewriter
+.filemon2/position-
+\emph on
+$appname
+\emph default
+.status
+\family default
+ file.
+ This should be called regularly by a cron job in order to maintain free
+ space on each 
+\family typewriter
+fm2
+\family default
+ filesystem.
+\end_layout
+
+\begin_layout Description
+extra-logrot After updating 
+\family typewriter
+enabled-mask-fm2.conf
+\family default
+, cause some extraordinary logfile rotation.
+\end_layout
+
+\begin_layout Description
+extra-overflow After updating 
+\family typewriter
+enabled-mask-fm2.conf
+\family default
+, cause a reset of the epoch timestamp, followed by a logfile rotation.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+ Hint: updating 
+\family typewriter
+enabled-mask-fm2.conf
+\family default
+ means that 
+\family typewriter
+fm2adm
+\family default
+ will look for any 
+\emph on
+other
+\emph default
+ application masks 
+\family typewriter
+enabled-mask-*.conf
+\family default
+ and to compute the logical OR of their bits.
+ When no 
+\emph on
+other
+\emph default
+ application masks exist, 
+\family typewriter
+enabled-mask-fm2.conf
+\family default
+ will be deleted in order to urge the kernel to work with some built-in
+ default mask (similar to startup with an empty 
+\family typewriter
+.filemon2/
+\family default
+ directory).
+ Notice that this built-in default may change in future versions of 
+\family typewriter
+fm2
+\family default
+.
+ If you want to control your masks in exactly your way, please do so by
+ providing 
+\family typewriter
+enabled-mask-*.conf
+\family default
+ files for 
+\emph on
+all
+\emph default
+ of your consumer applications.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+ In particular, package maintainers of 
+\family typewriter
+*.deb
+\family default
+ or 
+\family typewriter
+*.rpm
+\family default
+ packages are requested to provide some reasonable default masks for their
+ application in 
+\family typewriter
+/etc/defaults/fm2/
+\family default
+ and some way of copying or symlinking them to all 
+\family typewriter
+.filemon2/
+\family default
+ directories once they are created later and 
+\emph on
+activated
+\emph default
+.
+ Doing this is outside the scope of both the 
+\family typewriter
+filemon2
+\family default
+ kernel patch and the 
+\family typewriter
+fm2adm
+\family default
+ utility.
+ In particular, activation / deactivation of a particular consumer application
+ should be possible 
+\emph on
+individually
+\emph default
+ for each 
+\family typewriter
+fm2
+\family default
+ resource, e.g.
+ by creating / removing / renaming their respective 
+\family typewriter
+enabled-mask-*.conf
+\family default
+.
+ Alternatively, this might be delegated to some 
+\family typewriter
+systemd
+\family default
+ units, and/or to configuration management tools like Puppet or Chef or
+ Ansible.
+ Suchalike is clearly outside the scope of a 
+\emph on
+generic
+\emph default
+ tool like 
+\family typewriter
+filemonitor2
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/MatieresCorrosives.png
+	lyxscale 50
+	scale 17
+
+\end_inset
+
+ Please construct your consumer applications, as well as their packaging
+ and their configuration management, in such a way that 
+\series bold
+friendly co-existence
+\series default
+ with other applications is the headline.
+ OpenSource communities should obey this anyway.
+ Anyone who willingly sacrifices this general rule, will run the considerable
+ risk of being blamed in public.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+ Hint: 
+\emph on
+temporary
+\emph default
+ deactivation of 
+\family typewriter
+fm2
+\family default
+ is possible by writing 0 directly into 
+\family typewriter
+.filemon2/enabled-mask-fm2.conf
+\family default
+ and to set 
+\family typewriter
+chattr +i
+\family default
+ on it.
+ This will also reset the epoch timestamp.
+ Please use this only as a workaround for maintainance.
+\end_layout
+
+\begin_layout Chapter
+Eventlog Format
+\end_layout
+
+\begin_layout Standard
+Basically, event logfiles are in human-readable 
+\series bold
+CSV format
+\series default
+ with blanks as delimiters.
+ They should be easily processable with standard Unix pipes-and-filters
+ tools like 
+\family typewriter
+grep
+\family default
+ and 
+\family typewriter
+awk
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Interspersed are 
+\series bold
+global records
+\series default
+ and 
+\series bold
+variable records
+\series default
+ having a different format, starting with comment symbols 
+\family typewriter
+#
+\family default
+.
+ Thus it should be easy to filter out these comment lines with filters like
+ 
+\family typewriter
+grep -v '^#'
+\family default
+ or similar.
+\end_layout
+
+\begin_layout Standard
+Each eventlog .filemon2/eventlog-?????????.log starts with a textual CSV header
+ denoting the column names of the CSV parts.
+ Following are three types of records, each terminated by a newline character:
+\end_layout
+
+\begin_layout Enumerate
+Global Record (fixed width)
+\end_layout
+
+\begin_layout Enumerate
+Variable Value (variable width)
+\end_layout
+
+\begin_layout Enumerate
+CSV Record (variable width)
+\end_layout
+
+\begin_layout Section
+Global Record Format
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Global-Record-Format"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Typically, the next line after the header is a comment line showing the
+ reason why this logfile was started.
+ Here is a list of global record names:
+\end_layout
+
+\begin_layout Standard
+\noindent
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="9" columns="2">
+<features rotate="0" tabularvalignment="middle">
+<column alignment="left" valignment="top">
+<column alignment="left" valignment="top">
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Field
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Purpose
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+# MOUNT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Filesystem was freshly mounted
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+# UMOUNT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Filesystem is being umounted.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+# OVERFLOW
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+extra-overflow-fm2.cmd
+\family default
+ has been triggered (resets epoch).
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+# SPACE_FULL
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Filesystem has less than 
+\family typewriter
+free-space-min-fm2.conf
+\family default
+ GiB (resets epoch)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+# RESUME
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+OVERFLOW
+\family default
+ or 
+\family typewriter
+DISK_FULL
+\family default
+ now finished; now resuming.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+# LOGROT_BEGIN
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Logfile rotation started.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+# LOGROT_END
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Logfile rotation finished.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+# BAD_FORMAT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+(internal error) An output record could not be formatted (resets epoch).
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\noindent
+Further global record types may be defined in future versions of 
+\family typewriter
+fm2
+\family default
+.
+ Consumer applications must ignore them if they cannot interpret them (yet).
+\end_layout
+
+\begin_layout Standard
+The general global record format in C 
+\family typewriter
+printf()
+\family default
+ notation is as follows: 
+\family typewriter
+
+\begin_inset Quotes eld
+\end_inset
+
+# %-19s %10ld.%09ld %10ld.%09ld
+\backslash
+n
+\begin_inset Quotes erd
+\end_inset
+
+
+\family default
+.
+ This is a fixed-record format having exactly a lenght of 64 bytes, including
+ the final newline character.
+ The length is guaranteed to not change in future.
+ Following the record type string, there are two timestamps in Unix format:
+\end_layout
+
+\begin_layout Enumerate
+The 
+\family typewriter
+fm2
+\family default
+ epoch timestamp.
+\end_layout
+
+\begin_layout Enumerate
+The current timestamp when the global record was created.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+Notice that the last record of each ordinarily closed event logfile is always
+ a global record.
+ Therefore, it is possible to use 
+\family typewriter
+lseek64(fd, -64, SEEK_END)
+\family default
+ in a C program to find this record without scanning for it eagerly.
+ However, when the system has crashed during operation, then this record
+ will 
+\emph on
+not
+\emph default
+ exist after the system has rebooted and the filesystem has been remounted.
+ This may be exploited for detection of such interruptions.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+Also notice that upon such crashes, the 
+\family typewriter
+fm2
+\family default
+ epoch timestamp will be reset to the mount time because the old internal
+ epoch timestamp status had not been saved due to the missing 
+\family typewriter
+umount
+\family default
+.
+\end_layout
+
+\begin_layout Section
+Variable Record Format
+\end_layout
+
+\begin_layout Standard
+Records of this type are supposed to occur only rarely (not for mass data,
+ but only for some config changes or for rarely occurring extraordinary
+ global events).
+ The format is 
+\family typewriter
+
+\begin_inset Quotes eld
+\end_inset
+
+## VARNAME=VALUE
+\backslash
+n
+\begin_inset Quotes erd
+\end_inset
+
+
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+New varnames may be added at future versions of 
+\family typewriter
+fm2
+\family default
+.
+ Applications are required to ignore any unknown variables and their values.
+\end_layout
+
+\begin_layout Section
+CSV Record Format
+\end_layout
+
+\begin_layout Standard
+CSV records can be detected by the 
+\emph on
+absence
+\emph default
+ of a leading hash symbol 
+\family typewriter
+#
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+The format is 
+\series bold
+extensible
+\series default
+: new columns may be added at any new eventlog instance, provided that the
+ number of colums is the same for the headline and for all following CSV
+ value lines.
+\end_layout
+
+\begin_layout Standard
+Consumer applications 
+\series bold
+must
+\series default
+ deal with any additions of new columns at any place.
+\end_layout
+
+\begin_layout Standard
+Currently the following columns are defined:
+\end_layout
+
+\begin_layout Standard
+\noindent
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="10" columns="3">
+<features rotate="0" tabularvalignment="middle">
+<column alignment="left" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="left" valignment="top">
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CSV name
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Description
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+event_stamp
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Timestamp when some event has last occurred (retriggerable)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+now_stamp
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Timestamp when this CSV record has been written
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+events_new
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+(hex-coded) Event bits newly hit since the last record has been written
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+events_cumul
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+(hex-coded) Event bits cumulated since this dentry had been fresh
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+repeated
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of events since the last record has been written
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+i_ino
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Inode number of the corresponding inode (if existing)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+i_generation
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Inode generation number (if existing)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+pid
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+PID of the last process causing some event
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+path
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Relative pathname associated with this dentry
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\noindent
+The event bits are documented at 
+\family typewriter
+include/uapi/linux/filemon2.h
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Hint: 
+\family typewriter
+rename()
+\family default
+ operations will lead to 
+\emph on
+two
+\emph default
+ events: 
+\family typewriter
+FM2_EV_MOVE_FROM
+\family default
+ and 
+\family typewriter
+FM2_EV_MOVE_TO
+\family default
+ showing the old and the new path of the dentry before and after the rename
+ operation.
+\end_layout
+
+\begin_layout Standard
+Notice that it is up to the consumer application to deal with any races
+ which are 
+\emph on
+intrinsic
+\emph default
+(!) to the POSIX filesystem standards.
+\end_layout
+
+\begin_layout Standard
+Example: according to POSIX and other Unix standards, it is possible to
+ 
+\family typewriter
+unlink()
+\family default
+ a file while some filehandles to it remain open.
+ Afterwards, even some data can be written.
+ Similar effects can occur on hardlinks.
+ Also, 
+\family typewriter
+rename()
+\family default
+s won't affect any filehandles which were open before.
+\end_layout
+
+\begin_layout Chapter
+GNU Free Documentation License
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:GNU-FDL"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\noindent
+
+\family typewriter
+\size footnotesize
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting{fdl.txt}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
