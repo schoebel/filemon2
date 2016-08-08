@@ -133,7 +133,7 @@ tst@schoebel-theuer.de
 \end_layout
 
 \begin_layout Date
-Version 0.1
+Version 0.1.1
 \end_layout
 
 \begin_layout Lowertitleback
@@ -224,7 +224,7 @@ fsnotify
 \family default
  in several respects: (a) persistent event recording by a kernel thread
  even when no consumers are present at the moment (thus completeness / contiguit
-y can be guaranteed), and (b) ability to serve an arbitrary number of consumers
+y can be guaranteed), (b) ability to serve an arbitrary number of consumers
  in parallel with an arbitrary lag-behind (only limited by filesystem space,
  even several days of lag-behind are possible), and (c) use of relative
  paths inside of 
@@ -241,7 +241,7 @@ inotify
 \begin_inset Quotes eld
 \end_inset
 
-watches leaks
+leaks of watches
 \begin_inset Quotes erd
 \end_inset
 
@@ -303,7 +303,31 @@ transient
 \family typewriter
 dentry
 \family default
-: 
+ (
+\begin_inset Quotes eld
+\end_inset
+
+again
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\begin_inset Quotes eld
+\end_inset
+
+new
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+any
+\begin_inset Quotes erd
+\end_inset
+
+ relates to arrival of event types):
 \end_layout
 
 \begin_layout Standard
@@ -464,7 +488,7 @@ fm2
 \family default
  tries to ensure as best as it can that 
 \series bold
-no events are lost unnoticedly
+no events are lost in an unnoticed way
 \series default
 .
 \end_layout
@@ -608,7 +632,7 @@ The
 \family typewriter
 fm2
 \family default
- epoch timestamp is reset at the following places:
+ epoch timestamp is reset in the following situations:
 \end_layout
 
 \begin_layout Itemize
@@ -641,7 +665,7 @@ free-space-min-fm2.conf
 
 \end_inset
 
-Notice that the sequence of event logs is not only containing a 
+Notice that the sequence of event logs does not only contain a 
 \emph on
 history
 \emph default
@@ -704,12 +728,12 @@ fm2
 \end_layout
 
 \begin_layout Standard
-When a filesystem has a subdirectoy 
+If a filesystem has a subdirectoy 
 \family typewriter
 .filemon2/
 \family default
- directly below its filesystem root it will be automatically monitored by
- 
+ directly below its filesystem root, it will be automatically monitored
+ by 
 \family typewriter
 fm2
 \family default
@@ -933,24 +957,35 @@ fm2
 enabled-mask-fm2.conf
 \family default
  This file should not be directly overwritten by any single consumer application.
- Instead, each consumer application should write the event types it wants
- to watch into a file 
+ Instead, each consumer application 
+\family typewriter
+\emph on
+$applicationname
+\family default
+\emph default
+ should write the event types it wants to watch into another file 
 \family typewriter
 enabled-mask-
-\family default
 \emph on
 $applicationname
 \emph default
-.conf in hex format.
+.conf
+\family default
+ in hex format.
  Upon the next 
 \family typewriter
 fm2adm log-delete
 \family default
- operation (as typically triggered from a cron job), all 
+ operation (as typically triggered from a cron job for freespace management),
+ all 
 \family typewriter
 enabled-mask-
+\emph on
+$applicationname
+\emph default
+.conf
 \family default
-*.conf file will be logically or'ed together to form the new
+ files will be logically or'ed together to form the new
 \family typewriter
  enabled-mask-fm2
 \family default
@@ -1055,6 +1090,24 @@ DISK_FULL
 \family default
 .
  This value must not be touched by consumer applications.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+ All 
+\family typewriter
+*-fm2.conf
+\family default
+ files are re-read during log-rotation.
+ As a consequence, it is possible to change masks etc during runtime with
+ logfile granularity.
 \end_layout
 
 \begin_layout Section
@@ -1438,15 +1491,15 @@ Each eventlog .filemon2/eventlog-?????????.log starts with a textual CSV header
 \end_layout
 
 \begin_layout Enumerate
-Global Record (fixed width)
+Global Record Format (is a fixed width format)
 \end_layout
 
 \begin_layout Enumerate
-Variable Value (variable width)
+Variable Value Format (is a variable width format)
 \end_layout
 
 \begin_layout Enumerate
-CSV Record (variable width)
+CSV Record Format (is a variable width format)
 \end_layout
 
 \begin_layout Section
@@ -2242,7 +2295,7 @@ unlink()
 \family typewriter
 rename()
 \family default
-s won't affect any filehandles which were open before.
+s won't affect any filehandles which were already open before.
 \end_layout
 
 \begin_layout Chapter
