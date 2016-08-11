@@ -187,6 +187,12 @@ sub cmd_overflow {
   system("echo 1 > $res/.filemon2/extra-overflow-fm2.cmd");
 }
 
+sub cmd_timeout {
+  my ($cmd, $res) = @_;
+  update_mask(@_);
+  system("echo 1 > $res/.filemon2/extra-timeout-fm2.cmd");
+}
+
 ##################################################################
 
 # help etc
@@ -252,6 +258,11 @@ sub _get_log_nr {
    => [
        "Create an extraordinary overflow",
        \&cmd_overflow,
+      ],
+   "extra-timeout"
+   => [
+       "Trigger an extraordinary timeout for all delayed dentries",
+       \&cmd_timeout,
       ],
   );
 
