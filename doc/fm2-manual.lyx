@@ -133,7 +133,7 @@ tst@schoebel-theuer.de
 \end_layout
 
 \begin_layout Date
-Version 0.1.1
+Version 0.1.2
 \end_layout
 
 \begin_layout Lowertitleback
@@ -1167,6 +1167,22 @@ OVERFLOW
  time, and finally cause an extra eventlog rotation.
 \end_layout
 
+\begin_layout Description
+
+\family typewriter
+extra-timeout-fm2.cmd
+\family default
+ When containing a value >0, this will flush all 
+\family typewriter
+delayed
+\family default
+ dentries to the eventlog and bring them to state 
+\family typewriter
+fresh
+\family default
+ again.
+\end_layout
+
 \begin_layout Chapter
 Userspace Admin Command 
 \family typewriter
@@ -1259,6 +1275,18 @@ extra-overflow After updating
 enabled-mask-fm2.conf
 \family default
 , cause a reset of the epoch timestamp, followed by a logfile rotation.
+\end_layout
+
+\begin_layout Description
+extra-timeout After updating 
+\family typewriter
+enabled-mask-fm2.conf
+\family default
+, cause an extraordinary flush of all 
+\family typewriter
+delayed
+\family default
+ dentries.
 \end_layout
 
 \begin_layout Standard
@@ -1523,7 +1551,7 @@ Typically, the next line after the header is a comment line showing the
 \noindent
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="9" columns="2">
+<lyxtabular version="3" rows="11" columns="2">
 <features rotate="0" tabularvalignment="middle">
 <column alignment="left" valignment="top">
 <column alignment="left" valignment="top">
@@ -1712,6 +1740,50 @@ Logfile rotation started.
 
 \begin_layout Plain Layout
 Logfile rotation finished.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+# TIMEOUT_BEGIN
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+extra-timeout operation has started.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+# TIMEOUT_END
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+extra-timeout operation has finished.
 \end_layout
 
 \end_inset
