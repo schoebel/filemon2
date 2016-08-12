@@ -2302,7 +2302,7 @@ path
 \begin_inset Text
 
 \begin_layout Plain Layout
-Relative pathname associated with this dentry
+Relative pathname associated with this dentry, encoded like RFC2396.
 \end_layout
 
 \end_inset
@@ -2320,6 +2320,11 @@ Relative pathname associated with this dentry
 The event bits are documented at 
 \family typewriter
 include/uapi/linux/filemon2.h
+\family default
+.
+ The pathname is decodeable via 
+\family typewriter
+curl_easy_unescape(3)
 \family default
 .
 \end_layout
