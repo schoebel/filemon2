@@ -122,13 +122,14 @@ sub update_mask {
   foreach my $maskfile (glob("$res/.filemon2/enabled-mask-*.conf")) {
     next if $maskfile =~ m:/$myfile:;
     my $this_mask = `grep -v '#' "$maskfile"`;
+    chomp($this_mask);
     $this_mask = hex($this_mask) if $this_mask =~ m/0x/;
     $mask |= $this_mask;
     $count++;
   }
   if ($count) {
     open OUT, "> $res/.filemon2/$myfile.tmp" or die "cannot create $myfile";
-    printf OUT "%d\n", $mask;
+    printf OUT "0x%x\n", $mask;
     close OUT;
     rename("$res/.filemon2/$myfile.tmp", "$res/.filemon2/$myfile");
   } else {
