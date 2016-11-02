@@ -114,6 +114,13 @@ sub get_resources {
 
 # command helpers
 
+sub trigger {
+  my $procfile = "/proc/sys/fs/filemon2/trigger";
+  open OUT, ">$procfile" or warn "cannot open $procfile\n";
+  print OUT "1\n";
+  close OUT;
+}
+
 sub update_mask {
   my ($cmd, $res) = @_;
   my $myfile = "enabled-mask-fm2.conf";
@@ -132,6 +139,7 @@ sub update_mask {
     printf OUT "0x%x\n", $mask;
     close OUT;
     rename("$res/.filemon2/$myfile.tmp", "$res/.filemon2/$myfile");
+    trigger();
   } else {
     unlink("$res/.filemon2/$myfile");
   }
@@ -180,18 +188,21 @@ sub cmd_logrot {
   my ($cmd, $res) = @_;
   update_mask(@_);
   system("echo 1 > $res/.filemon2/extra-logrot-fm2.cmd");
+  trigger();
 }
 
 sub cmd_overflow {
   my ($cmd, $res) = @_;
   update_mask(@_);
   system("echo 1 > $res/.filemon2/extra-overflow-fm2.cmd");
+  trigger();
 }
 
 sub cmd_timeout {
   my ($cmd, $res) = @_;
   update_mask(@_);
   system("echo 1 > $res/.filemon2/extra-timeout-fm2.cmd");
+  trigger();
 }
 
 ##################################################################
