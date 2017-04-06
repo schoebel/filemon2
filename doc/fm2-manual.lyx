@@ -133,7 +133,7 @@ tst@schoebel-theuer.de
 \end_layout
 
 \begin_layout Date
-Version 0.1.4
+Version 0.1.5
 \end_layout
 
 \begin_layout Lowertitleback
@@ -1060,8 +1060,8 @@ fresh
 \family typewriter
 free-space-min-fm2.conf
 \family default
- Sysadmins can tune this number to the free space on the filesystem in GiB
- which must be present for ordinary operation (default 1 GiB).
+ Sysadmins can tune this number to the free space on the filesystem in MiB
+ which must be present for ordinary operation (default 1024 MiB).
  When the free space on the filesystem drops below this limit, 
 \series bold
 fm2
@@ -1072,6 +1072,44 @@ DISK_FULL
 \family default
  record into the eventlog.
  This value must not be touched by consumer applications.
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Graphics
+	filename images/MatieresToxiques.png
+	lyxscale 50
+	scale 17
+
+\end_inset
+
+ This value must never be set smaller than 1.
+ Doing so will issue kernel errors.
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Graphics
+	filename images/lightbulb_brightlit_benj_.png
+	lyxscale 12
+	scale 7
+
+\end_inset
+
+ Important! Whenever changing this, you should also modify 
+\family typewriter
+free-space-max-fm2.conf
+\family default
+ accordingly in order to avoid unintended misconfigurations.
+ Please notice that 
+\family typewriter
+free-space-max-fm2.conf
+\family default
+ must never grow smaller than 
+\family typewriter
+free-space-min-fm2.conf
+\family default
+.
 \end_layout
 
 \begin_layout Description
@@ -1083,13 +1121,30 @@ free-space-max-fm2.conf
 \family typewriter
 free-space-min-fm2
 \family default
-.conf (default 2 GiB): it denotes the point where event logging is automatically
- resumed after a 
+.conf (default 2048 MiB): it denotes the point where event logging is automatical
+ly resumed after a 
 \family typewriter
 DISK_FULL
 \family default
 .
  This value must not be touched by consumer applications.
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Graphics
+	filename images/MatieresCorrosives.png
+	lyxscale 50
+	scale 17
+
+\end_inset
+
+ This value must never be set smaller than 
+\family typewriter
+free-space-min-fm2.conf
+\family default
+.
+ Doing so will internally correct the problem and spit a kernel warning.
 \end_layout
 
 \begin_layout Standard
@@ -1105,7 +1160,7 @@ DISK_FULL
 \family typewriter
 *-fm2.conf
 \family default
- files are re-read during log-rotation.
+ files are only re-read during log-rotation.
  As a consequence, it is possible to change masks etc during runtime with
  logfile granularity.
 \end_layout
