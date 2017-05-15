@@ -1,0 +1,8 @@
+#
+# Regular cron job for filemon2
+#
+
+PATH=/usr/lib/fm2:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin
+
+# log rotation every x minutes
+*/10 * * * *	root	fm2adm logdelete > /dev/null 2>&1
