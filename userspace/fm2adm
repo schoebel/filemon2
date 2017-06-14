@@ -333,6 +333,8 @@ if (!@args) {
 
 foreach my $res (@args) {
   next unless -d "$res/.filemon2/";
+  my @check = glob("$res/.filemon2/eventlog-*.log");
+  next unless @check;
   my @list = @$action_list;
   while (@list) {
     my $func = shift @list;
