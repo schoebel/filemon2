@@ -41,7 +41,7 @@ fixltx2e
 \paperfontsize 10
 \spacing single
 \use_hyperref true
-\pdf_title "MARS Manual"
+\pdf_title "filemon2 Manual"
 \pdf_author "Thomas Schöbel-Theuer"
 \pdf_bookmarks true
 \pdf_bookmarksnumbered false
