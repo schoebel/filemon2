@@ -165,7 +165,7 @@ sub cmd_minlog_position {
   my @logs        = sort(glob("$res/.filemon2/eventlog-*.log"));
   my $min_logfile = shift(@logs);
   my $min_logseq  = $min_logfile;
-  $min_logseq     =~ s:(^$res/.filemon2/eventlog-)(0*)(\d+)(.*$):$3:;
+  $min_logseq     =~ s:(^$res/.filemon2/eventlog-)(0*)(\d+)(.log$):$3:;
 
   my @positions = sort(glob("$res/.filemon2/position-*.status"));
   my $min_logseq_status = 0;
