@@ -157,6 +157,36 @@ sub cmd_status {
   lprint "$res\t$last_log\n";
 }
 
+sub cmd_minlog_position {
+  # implemented by Juergen Kuri, 23.06.2020
+  # 1&1 IONOS SE
+  my ($cmd, $res) = @_;
+
+  my @logs        = sort(glob("$res/.filemon2/eventlog-*.log"));
+  my $min_logfile = shift(@logs);
+  my $min_logseq  = $min_logfile;
+  $min_logseq     =~ s:(^$res/.filemon2/eventlog-)(0*)(\d+)(.*$):$3:;
+
+  my @positions = sort(glob("$res/.filemon2/position-*.status"));
+  my $min_logseq_status = 0;
+
+  while (@positions) {
+    my $this_position = shift(@positions);
+    open(IN, "grep '$min_logseq' $this_position |") or ldie("cannot open '$this_position'");
+
+    if( !defined($min_logseq_status = <IN>) ) {
+       close(IN);
+       next;
+    } else {
+       close(IN);
+       lprint("Kernel eventlog with lowest log sequence position: $min_logfile ---> $min_logseq");
+       print("\n");
+       lprint("  Position file with lowest log sequence position: $this_position ---> $min_logseq_status");
+       last;
+    }
+  }
+}
+
 sub cmd_logdelete {
   my ($cmd, $res) = @_;
   update_mask(@_);
@@ -255,6 +285,11 @@ sub _get_log_nr {
    => [
        "Show the status of each resource",
        \&cmd_status,
+      ],
+   "min-logpos"
+   => [
+       "Show status position file which holds the lowest (oldest) log sequence number",
+       \&cmd_minlog_position,
       ],
    "logdelete"
    => [
