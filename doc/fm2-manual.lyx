@@ -141,7 +141,7 @@ tst@schoebel-theuer.de
 \end_layout
 
 \begin_layout Date
-Version 0.1.6
+Version 0.1.7
 \end_layout
 
 \begin_layout Lowertitleback
@@ -1444,6 +1444,11 @@ enabled-mask-fm2.conf
 delayed
 \family default
  dentries.
+\end_layout
+
+\begin_layout Description
+min-logpos Show status position file path, holding the lowest (oldest) log
+ sequence number (minimum for all consumers).
 \end_layout
 
 \begin_layout Standard
