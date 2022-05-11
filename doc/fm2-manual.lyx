@@ -141,7 +141,7 @@ tst@schoebel-theuer.de
 \end_layout
 
 \begin_layout Date
-Version 0.1.7
+Version 0.1.8
 \end_layout
 
 \begin_layout Lowertitleback
@@ -218,7 +218,15 @@ sloppy
 
  filemon2 
 \family default
-differs from 
+is in operation since 2016, running on thousands of servers and on millions
+ of customers.
+ Its current use case is the 1&1 specific EhB = Enhanced Backup, running
+ in parallel to some more userspace tools like the so-called Biofilter,
+ but its generic event logging may be also useful for other applications.
+ Due to automatic in-kernel recording of persistent event logs, it is perfectly
+ collaborating with MARS geo-redundancy, both in handover and in failover
+ scenarios.
+ It differs from 
 \family typewriter
 inotify
 \family default
@@ -230,18 +238,69 @@ dnotify
 \family typewriter
 fsnotify
 \family default
- in several respects: (a) persistent event recording by a kernel thread
- even when no consumers are present at the moment (thus completeness / contiguit
-y can be guaranteed), (b) ability to serve an arbitrary number of consumers
- in parallel with an arbitrary lag-behind (only limited by filesystem space,
- even several days of lag-behind are possible), and (c) use of relative
+ in several respects:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+(a) 
+\series bold
+persistent
+\series default
+ event recording by per-filesystem kernel threads, even when no consumers
+ are present at the moment (thus completeness / contiguity can be guaranteed,
+ even when the OOM killer affects userspace daemons).
+\end_layout
+
+\begin_layout Description
+(b) ability to serve an 
+\series bold
+\emph on
+arbitrary
+\emph default
+ number
+\series default
+ of logfile 
+\series bold
+consumers
+\series default
+, running on the same filesystem instance 
+\emph on
+in parallel
+\emph default
+, and with arbitrary lag-behind (only limited by filesystem space, even
+ several days of 
+\emph on
+individual
+\emph default
+ lag-behind are possible).
+\end_layout
+
+\begin_layout Description
+(c) 
+\series bold
+automatic recording
+\series default
+ of 
+\emph on
+relative
+\emph default
  paths inside of 
 \emph on
 physical
 \emph default
- filesystems, independently from ambiguous logical paths caused by bind
- mounts / namespaces / containers etc.
- In contrast to 
+ filesystem instances, independently from ambiguous logical paths caused
+ by bind mounts / namespaces / containers etc.
+ This is important for 
+\emph on
+mass data migration
+\emph default
+, e.g.
+ via the MARS-based football.
+\end_layout
+
+\begin_layout Standard
+In contrast to 
 \family typewriter
 inotify
 \family default
@@ -253,8 +312,20 @@ leaks of watches
 \begin_inset Quotes erd
 \end_inset
 
- and other kernel memory leaks, no additional kernel memory is allocated
- at all during transient states, by directly placing the 
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+leaks of filehandles
+\begin_inset Quotes erd
+\end_inset
+
+ or other kernel memory leaks (e.g.
+ in overload situations like DDOS attacks), 
+\family typewriter
+filemon2
+\family default
+ does not allocate additional kernel memory, by directly placing the 
 \family typewriter
 filemon2
 \family default
@@ -262,9 +333,16 @@ filemon2
 \family typewriter
 struct dentry
 \family default
-.
+ instances.
+ This results in 
+\series bold
+massive performance advantages
+\series default
+ on servers hosting multi-millions of inodes per filesystem instance, and
+ serving syscall peak rates of millions per second.
 \end_layout
 
+\end_deeper
 \begin_layout Standard
 \begin_inset CommandInset toc
 LatexCommand tableofcontents
