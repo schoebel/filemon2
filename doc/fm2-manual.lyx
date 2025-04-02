@@ -2578,6 +2578,179 @@ curl_easy_unescape(3)
 \end_layout
 
 \begin_layout Standard
+Following is a list of event names as denoted in the mentioned C header
+ file.
+ You can see the bit numbers as used in the 
+\family typewriter
+events_new
+\family default
+ and
+\family typewriter
+ events_cumul
+\family default
+ columns as explained above.
+ Of course, when multiple bits are set in parallel, they are or'ed together.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage newpage
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Example: when a file is shortly opened and a byte is append and finally
+ is closed, the decimal bits 12 | 13 | 15 will be set.
+ So these bit numbers need to be shifted like in (1 << 
+\family typewriter
+$bitnumber
+\family default
+) resulting in the decimal numbers 4096 | 8192 | 32768.
+ Or'ing together yields decimal 73728.
+ Interpreted as a hex number, this will apear as 12000 in the event log.
+ Note that leading 0x prefixes are omitted in order to save space in the
+ logfile.
+ Hopefully this small example is understandable when looking at the follosing
+ piece of code:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+enum fm2_event {
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_MOUNT,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_UMOUNT,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_NEW = 4,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_CREATE,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_LINK,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_MKDIR,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_DELETE,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_MOVED_FROM,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_MOVED_TO,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_OPEN = 12,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_CLOSE,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_READ,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_WRITE,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_STAT,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_READDIR,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_MODIFY = 20,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_ATTR,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_XATTR,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_FLOCK = 24,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_PLOCK,
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_REPEAT_TIMEOUT = 63,
+\end_layout
+
+\begin_layout Plain Layout
+
+        /* this must remain the last entry */
+\end_layout
+
+\begin_layout Plain Layout
+
+        FM2_EV_MAX
+\end_layout
+
+\begin_layout Plain Layout
+
+}; 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 Hint: 
 \family typewriter
 rename()
